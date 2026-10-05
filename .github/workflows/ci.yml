@@ -1,0 +1,158 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Forced software rendering everywhere: llvmpipe or no DRI at all.
+  LIBGL_ALWAYS_SOFTWARE: "1"
+  GALLIUM_DRIVER: llvmpipe
+  QT_QPA_PLATFORM: wayland
+  QT_QUICK_BACKEND: software
+
+jobs:
+  banned-symbols:
+    name: banned symbols / no QML / no GPU
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject QOpenGL / QQuick / QML / QtWebEngine / .qml / .ui
+        run: ci/check-banned-symbols.sh
+      - name: Require software-rendering hardening
+        run: ci/check-env-hardening.sh
+
+  build:
+    name: build (${{ matrix.build }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [debug, release, release-small]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build \
+            qt6-base-dev qt6-base-private-dev qt6-wayland-dev \
+            libpulse-dev libudev-dev libpam0g-dev \
+            pkg-config
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build }} \
+            -DKAPAH_WERROR=ON \
+            -DKAPAH_RELEASE_SMALL=${{ matrix.build == 'release-small' }}
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+      - name: Unit + headless tests
+        run: ctest --test-dir build --output-on-failure -LE integration
+      - name: Report binary sizes
+        run: |
+          ls -la build/bin/ || true
+          size build/bin/* || true
+
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build clang-tidy \
+            qt6-base-dev qt6-base-private-dev qt6-wayland-dev \
+            libpulse-dev libudev-dev libpam0g-dev pkg-config
+      - name: Run
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_CLANG_TIDY=clang-tidy
+          cmake --build build -j"$(nproc)"
+
+  sanitizers:
+    name: asan + ubsan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build \
+            qt6-base-dev qt6-base-private-dev qt6-wayland-dev \
+            libpulse-dev libudev-dev libpam0g-dev pkg-config
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DKAPAH_ENABLE_ASAN=ON
+          cmake --build build -j"$(nproc)"
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -LE integration
+
+  fuzz:
+    name: parser fuzzers (60s smoke)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build clang \
+            qt6-base-dev qt6-base-private-dev qt6-wayland-dev \
+            libpulse-dev libudev-dev libpam0g-dev pkg-config
+      - name: Build fuzzers
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DKAPAH_ENABLE_FUZZERS=ON -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++
+          cmake --build build -j"$(nproc)"
+      - name: Smoke-run each corpus seed
+        run: tools/perf/run-fuzzers.sh
+
+  integration:
+    name: integration (nested niri, software rendering)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build \
+            qt6-base-dev qt6-base-private-dev qt6-wayland-dev \
+            libpulse-dev libudev-dev libpam0g-dev pkg-config \
+            niri dbus dbus-x11 python3-dbusmock xvfb libgl1-mesa-dri mesa-utils
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j"$(nproc)"
+      - name: Run integration suite
+        run: tests/integration/run-all.sh
+
+  perf:
+    name: perf gate (PSS + wakeups)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build \
+            qt6-base-dev qt6-base-private-dev qt6-wayland-dev \
+            libpulse-dev libudev-dev libpam0g-dev pkg-config \
+            niri dbus libgl1-mesa-dri
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j"$(nproc)"
+      - name: Regression gate
+        run: tools/perf/perf-gate.sh

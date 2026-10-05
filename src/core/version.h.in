@@ -1,0 +1,21 @@
+// Generated from version.h.in -- do not edit.
+#pragma once
+
+#define KAPAH_NAME "@SHELL_NAME@"
+#define KAPAH_VERSION "@PROJECT_VERSION@"
+#define KAPAH_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define KAPAH_VERSION_MINOR @PROJECT_VERSION_MINOR@
+#define KAPAH_VERSION_PATCH @PROJECT_VERSION_PATCH@
+
+// Bumped whenever the on-disk layout changes in a way that needs migration.
+#define KAPAH_CONFIG_REVISION 1
+
+// Bumped whenever the shelld IPC wire protocol gains a command or changes a
+// payload. kapahctl refuses to talk to a shelld with a different major.
+#define KAPAH_IPC_VERSION_MAJOR 1
+#define KAPAH_IPC_VERSION_MINOR 0
+
+// Minimum niri IPC version this shell was validated against, and the version
+// the fixtures in tests/fixtures/niri/ were recorded on. See docs/PROTOCOLS.md.
+#define KAPAH_NIRI_MIN_VERSION "25.11"
+#define KAPAH_NIRI_TESTED_VERSION "26.4.0"

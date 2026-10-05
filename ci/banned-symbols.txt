@@ -1,0 +1,33 @@
+# Banned symbols gate (roadmap sections 1 and 5/Phase 0.1).
+#
+# kapah renders with QPainter on the CPU. The moment a QOpenGLWidget,
+# QQuickWidget, QQuickItem or a .qml file sneaks in, we start depending on an
+# RHI backend that does not exist under llvmpipe/no-DRI, and the RSS floor in
+# section 0 of the roadmap becomes unreachable.
+#
+# Each entry is "<extended-regex>[TAB]<why>". Blank lines and lines starting
+# with '#' are ignored. Run with: ci/check-banned-symbols.sh
+
+QOpenGLWidget                 GPU rendering; breaks llvmpipe-only targets
+QOpenGLContext               GPU rendering
+QOpenGLFramebufferObject      GPU rendering
+QOpenGLShader                 GPU rendering
+QOpenGLTexture                GPU rendering
+QOpenGLBuffer                 GPU rendering
+QOpenGLShaderProgram          GPU rendering
+QQuickWidget                  pulls in QtQuick scene graph + V4
+QQuickView                   pulls in QtQuick scene graph + V4
+QQuickItem                    pulls in QtQuick scene graph + V4
+QQuickWindow                  pulls in QtQuick scene graph + V4
+QQmlApplicationEngine         pulls in the QML engine into the daemon
+QQmlEngine                    pulls in the QML engine into the daemon
+QtWebEngine                  multi-hundred-MB RSS
+QtMultimedia                 unrelated media stack
+QtQuick\.h                   Quick header in a hot-path translation unit
+QtQml/                       QML in the daemon
+qmlRegisterType               QML in the daemon
+QtCharts                     unrelated
+QtDataVisualization           unrelated
+Qt3D                         unrelated
+QtCharts\.                   unrelated
+QtBluetooth\s                Bluetooth stack is a separate process (bluez); see ADR-010
