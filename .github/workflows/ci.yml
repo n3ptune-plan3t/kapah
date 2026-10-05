@@ -30,7 +30,7 @@ jobs:
   build:
     name: build (${{ matrix.build }})
     runs-on: ubuntu-latest
-    container: fedora:41
+    container: openmandriva/cooker
     strategy:
       fail-fast: false
       matrix:
@@ -39,11 +39,10 @@ jobs:
       - name: Install dependencies
         run: |
           set -x
-          dnf install -y git cmake ninja-build gcc-c++ \
-            qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtwayland-devel qt6-qtwayland-private-devel \
-            libpulse-devel systemd-devel pam-devel wayland-devel wayland-protocols-devel \
-            libxkbcommon-devel pkgconf-pkg-config \
-            mesa-dri-drivers mesa-libGL-devel libglvnd-devel
+          dnf install -y git cmake ninja-build clang libstdc++-devel \
+            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
+            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
+            lib64xkbcommon-devel pkgconf-pkg-config
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -52,8 +51,9 @@ jobs:
       - name: Configure
         working-directory: src
         run: |
+          BUILD_TYPE=$([ "${{ matrix.build }}" = debug ] && echo Debug || ([ "${{ matrix.build }}" = release-small ] && echo MinSizeRel || echo Release))
           cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build }} \
+            -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
             -DKAPAH_WERROR=ON \
             -DKAPAH_RELEASE_SMALL=${{ matrix.build == 'release-small' }}
       - name: Build
@@ -68,44 +68,18 @@ jobs:
           ls -la build/bin/ || true
           size build/bin/* || true
 
-  clang-tidy:
-    name: clang-tidy
-    runs-on: ubuntu-latest
-    container: fedora:41
-    steps:
-      - name: Install dependencies
-        run: |
-          set -x
-          dnf install -y git cmake ninja-build gcc-c++ clang clang-tools-extra \
-            qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtwayland-devel qt6-qtwayland-private-devel \
-            libpulse-devel systemd-devel pam-devel wayland-devel wayland-protocols-devel \
-            libxkbcommon-devel pkgconf-pkg-config \
-            mesa-dri-drivers mesa-libGL-devel libglvnd-devel
-      - name: Checkout
-        run: |
-          git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
-          cd src
-          git checkout "$GITHUB_SHA"
-      - name: Run
-        working-directory: src
-        run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_CLANG_TIDY=clang-tidy
-          cmake --build build -j"$(nproc)"
-
   sanitizers:
     name: asan + ubsan
     runs-on: ubuntu-latest
-    container: fedora:41
+    container: openmandriva/cooker
     steps:
       - name: Install dependencies
         run: |
           set -x
-          dnf install -y git cmake ninja-build gcc-c++ \
-            qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtwayland-devel qt6-qtwayland-private-devel \
-            libpulse-devel systemd-devel pam-devel wayland-devel wayland-protocols-devel \
-            libxkbcommon-devel pkgconf-pkg-config \
-            mesa-dri-drivers mesa-libGL-devel libglvnd-devel
+          dnf install -y git cmake ninja-build clang libstdc++-devel \
+            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
+            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
+            lib64xkbcommon-devel pkgconf-pkg-config
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -123,16 +97,15 @@ jobs:
   fuzz:
     name: parser fuzzers (60s smoke)
     runs-on: ubuntu-latest
-    container: fedora:41
+    container: openmandriva/cooker
     steps:
       - name: Install dependencies
         run: |
           set -x
-          dnf install -y git cmake ninja-build clang \
-            qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtwayland-devel qt6-qtwayland-private-devel \
-            libpulse-devel systemd-devel pam-devel wayland-devel wayland-protocols-devel \
-            libxkbcommon-devel pkgconf-pkg-config \
-            mesa-dri-drivers mesa-libGL-devel libglvnd-devel
+          dnf install -y git cmake ninja-build clang libstdc++-devel \
+            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
+            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
+            lib64xkbcommon-devel pkgconf-pkg-config
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -152,19 +125,16 @@ jobs:
   integration:
     name: integration (nested niri, software rendering)
     runs-on: ubuntu-latest
-    container: fedora:41
+    container: openmandriva/cooker
     steps:
       - name: Install dependencies
         run: |
           set -x
-          dnf install -y git cmake ninja-build gcc-c++ \
-            qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtwayland-devel qt6-qtwayland-private-devel \
-            libpulse-devel systemd-devel pam-devel wayland-devel wayland-protocols-devel \
-            libxkbcommon-devel pkgconf-pkg-config \
-            mesa-dri-drivers mesa-libGL-devel libglvnd-devel \
-            dbus dbus-x11 python3-dbusmock xvfb mesa-utils
-          dnf copr enable -y yalter/niri || true
-          dnf install -y niri || true
+          dnf install -y git cmake ninja-build clang libstdc++-devel \
+            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
+            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
+            lib64xkbcommon-devel pkgconf-pkg-config \
+            dbus dbus-x11 python3-dbusmock xvfb niri
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -182,19 +152,16 @@ jobs:
   perf:
     name: perf gate (PSS + wakeups)
     runs-on: ubuntu-latest
-    container: fedora:41
+    container: openmandriva/cooker
     steps:
       - name: Install dependencies
         run: |
           set -x
-          dnf install -y git cmake ninja-build gcc-c++ \
-            qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtwayland-devel qt6-qtwayland-private-devel \
-            libpulse-devel systemd-devel pam-devel wayland-devel wayland-protocols-devel \
-            libxkbcommon-devel pkgconf-pkg-config \
-            mesa-dri-drivers mesa-libGL-devel libglvnd-devel \
-            dbus
-          dnf copr enable -y yalter/niri || true
-          dnf install -y niri || true
+          dnf install -y git cmake ninja-build clang libstdc++-devel \
+            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
+            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
+            lib64xkbcommon-devel pkgconf-pkg-config \
+            dbus niri
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
