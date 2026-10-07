@@ -9,6 +9,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  packages: read
+
 env:
   # Forced software rendering everywhere: llvmpipe or no DRI at all.
   LIBGL_ALWAYS_SOFTWARE: "1"
@@ -30,19 +34,22 @@ jobs:
   build:
     name: build (${{ matrix.build }})
     runs-on: ubuntu-latest
-    container: openmandriva/cooker
+    container:
+      image: ghcr.io/n3ptune-plan3t/oma-znver1-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
         build: [debug, release, release-small]
     steps:
-      - name: Install dependencies
+      - name: Verify toolchain
         run: |
           set -x
-          dnf install -y git cmake ninja clang libstdc++-devel \
-            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
-            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
-            lib64xkbcommon-devel pkgconf
+          which cmake ninja c++ ld clang++ pkgconf
+          cmake --version | head -1
+          c++ --version | head -1
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -71,15 +78,12 @@ jobs:
   sanitizers:
     name: asan + ubsan
     runs-on: ubuntu-latest
-    container: openmandriva/cooker
+    container:
+      image: ghcr.io/n3ptune-plan3t/oma-znver1-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Install dependencies
-        run: |
-          set -x
-          dnf install -y git cmake ninja clang libstdc++-devel \
-            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
-            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
-            lib64xkbcommon-devel pkgconf
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -97,15 +101,12 @@ jobs:
   fuzz:
     name: parser fuzzers (60s smoke)
     runs-on: ubuntu-latest
-    container: openmandriva/cooker
+    container:
+      image: ghcr.io/n3ptune-plan3t/oma-znver1-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Install dependencies
-        run: |
-          set -x
-          dnf install -y git cmake ninja clang libstdc++-devel \
-            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
-            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
-            lib64xkbcommon-devel pkgconf
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -125,16 +126,12 @@ jobs:
   integration:
     name: integration (nested niri, software rendering)
     runs-on: ubuntu-latest
-    container: openmandriva/cooker
+    container:
+      image: ghcr.io/n3ptune-plan3t/oma-znver1-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Install dependencies
-        run: |
-          set -x
-          dnf install -y git cmake ninja clang libstdc++-devel \
-            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
-            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
-            lib64xkbcommon-devel pkgconf \
-            dbus niri
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -152,16 +149,12 @@ jobs:
   perf:
     name: perf gate (PSS + wakeups)
     runs-on: ubuntu-latest
-    container: openmandriva/cooker
+    container:
+      image: ghcr.io/n3ptune-plan3t/oma-znver1-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Install dependencies
-        run: |
-          set -x
-          dnf install -y git cmake ninja clang libstdc++-devel \
-            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
-            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
-            lib64xkbcommon-devel pkgconf \
-            dbus niri
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
