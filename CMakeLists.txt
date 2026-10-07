@@ -57,6 +57,15 @@ find_package(Qt6 QUIET COMPONENTS WaylandClientTools)
 find_package(Qt6WaylandScannerTools QUIET)
 
 if(NOT COMMAND qt_generate_wayland_protocol_sources)
+    # Some packages provide the macros file without their config including it;
+    # include it directly from the Qt6 cmake sibling dirs.
+    get_filename_component(_qt6_cmake_siblings "${Qt6_DIR}" DIRECTORY)
+    include("${_qt6_cmake_siblings}/Qt6WaylandScannerTools/Qt6WaylandClientMacros.cmake" OPTIONAL)
+    include("${_qt6_cmake_siblings}/Qt6WaylandClientTools/Qt6WaylandClientMacros.cmake" OPTIONAL)
+    unset(_qt6_cmake_siblings)
+endif()
+
+if(NOT COMMAND qt_generate_wayland_protocol_sources)
     message(FATAL_ERROR
         "qt_generate_wayland_protocol_sources() is not defined. Install the package "
         "providing Qt6WaylandClientTools (Debian/Fedora) or Qt6WaylandScannerTools "
