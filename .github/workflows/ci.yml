@@ -44,12 +44,13 @@ jobs:
       matrix:
         build: [debug, release, release-small]
     steps:
-      - name: Verify toolchain
+      - name: Install dependencies
         run: |
           set -x
-          which cmake ninja c++ ld clang++ pkgconf
-          cmake --version | head -1
-          c++ --version | head -1
+          dnf install -y git cmake ninja clang binutils libstdc++-devel \
+            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
+            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
+            lib64xkbcommon-devel pkgconf
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -84,6 +85,13 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Install dependencies
+        run: |
+          set -x
+          dnf install -y git cmake ninja clang binutils libstdc++-devel \
+            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
+            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
+            lib64xkbcommon-devel pkgconf
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -107,6 +115,13 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Install dependencies
+        run: |
+          set -x
+          dnf install -y git cmake ninja clang binutils libstdc++-devel \
+            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
+            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
+            lib64xkbcommon-devel pkgconf
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -132,6 +147,14 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Install dependencies
+        run: |
+          set -x
+          dnf install -y git cmake ninja clang binutils libstdc++-devel \
+            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
+            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
+            lib64xkbcommon-devel pkgconf \
+            dbus niri
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
@@ -155,6 +178,14 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Install dependencies
+        run: |
+          set -x
+          dnf install -y git cmake ninja clang binutils libstdc++-devel \
+            lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6DBus-devel lib64Qt6Network-devel lib64Qt6Test-devel lib64Qt6WaylandClient-devel \
+            lib64pulseaudio-devel lib64udev-devel lib64pam-devel wayland-devel wayland-protocols-devel \
+            lib64xkbcommon-devel pkgconf \
+            dbus niri
       - name: Checkout
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" src
