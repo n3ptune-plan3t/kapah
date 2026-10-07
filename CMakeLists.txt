@@ -58,10 +58,18 @@ find_package(Qt6WaylandScannerTools QUIET)
 
 if(NOT COMMAND qt_generate_wayland_protocol_sources)
     # Some packages provide the macros file without their config including it;
-    # include it directly from the Qt6 cmake sibling dirs.
+    # locate Qt6WaylandClientMacros.cmake anywhere in the Qt6 install and
+    # include it directly.
     get_filename_component(_qt6_cmake_siblings "${Qt6_DIR}" DIRECTORY)
-    include("${_qt6_cmake_siblings}/Qt6WaylandScannerTools/Qt6WaylandClientMacros.cmake" OPTIONAL)
-    include("${_qt6_cmake_siblings}/Qt6WaylandClientTools/Qt6WaylandClientMacros.cmake" OPTIONAL)
+    file(GLOB_RECURSE _qt6_wayland_macros
+        "${_qt6_cmake_siblings}/*/Qt6WaylandClientMacros.cmake")
+    message(STATUS "Qt6 wayland client macros candidates: ${_qt6_wayland_macros}")
+    if(_qt6_wayland_macros)
+        list(GET _qt6_wayland_macros 0 _qt6_wayland_macros_first)
+        include("${_qt6_wayland_macros_first}")
+    endif()
+    unset(_qt6_wayland_macros)
+    unset(_qt6_wayland_macros_first)
     unset(_qt6_cmake_siblings)
 endif()
 
