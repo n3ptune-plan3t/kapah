@@ -51,8 +51,17 @@ include(cmake/Sanitizers.cmake)
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets DBus WaylandClient)
 qt_standard_project_setup()
 
-# qt_generate_wayland_protocol_sources() lives in Qt6WaylandClientTools.
+# qt_generate_wayland_protocol_sources() lives in Qt6WaylandClientTools
+# upstream; OpenMandriva ships the same macros as Qt6WaylandScannerTools.
 find_package(Qt6 QUIET COMPONENTS WaylandClientTools)
+find_package(Qt6WaylandScannerTools QUIET)
+
+if(NOT COMMAND qt_generate_wayland_protocol_sources)
+    message(FATAL_ERROR
+        "qt_generate_wayland_protocol_sources() is not defined. Install the package "
+        "providing Qt6WaylandClientTools (Debian/Fedora) or Qt6WaylandScannerTools "
+        "(OpenMandriva: lib64Qt6WaylandClient-devel).")
+endif()
 
 # WaylandClientPrivate provides the QWayland* private client headers that the
 # layer-shell glue in src/wl/ is built on (ADR-002).
@@ -82,7 +91,20 @@ if(NOT LIBUDEV_FOUND)
 endif()
 
 if(KAPAH_WITH_PAM)
-    pkg_check_modules(PAM IMPORTED_TARGET libpam)
+    # Several distros (Fedora, OpenMandriva) ship no libpam.pc, so fall back to
+    # a plain header+library probe when pkg-config draws a blank.
+    pkg_check_modules(PAM QUIET IMPORTED_TARGET libpam)
+    if(NOT PAM_FOUND)
+        find_path(PAM_INCLUDE_DIR security/pam_appl.h)
+        find_library(PAM_LIBRARY pam)
+        if(PAM_INCLUDE_DIR AND PAM_LIBRARY)
+            set(PAM_FOUND ON)
+            add_library(PkgConfig::PAM UNKNOWN IMPORTED)
+            set_target_properties(PkgConfig::PAM PROPERTIES
+                IMPORTED_LOCATION "${PAM_LIBRARY}"
+                INTERFACE_INCLUDE_DIRECTORIES "${PAM_INCLUDE_DIR}")
+        endif()
+    endif()
     if(NOT PAM_FOUND)
         message(WARNING "libpam not found: kapah-lock will be built without PAM support.")
         set(KAPAH_WITH_PAM OFF)
